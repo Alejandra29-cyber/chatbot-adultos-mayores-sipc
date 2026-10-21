@@ -1,0 +1,27 @@
+{
+  "proyecto": "ORACLE-Voz",
+  "version": "1.0",
+  "descripcion": "Diccionario de datos y registros de interacciones del asistente gerontológico",
+  "campos": [
+    {
+      "id_interaccion": "str",
+      "timestamp": "datetime",
+      "tipo_entrada": "audio/texto",
+      "contenido_transcrito": "str",
+      "clasificacion_emocional": "str",
+      "nivel_riesgo": "int (1-5)",
+      "alerta_generada": "bool"
+    }
+  ],
+  "registros_prueba": [
+    {
+      "id_interaccion": "orv-001",
+      "timestamp": "2026-10-21T10:30:00Z",
+      "tipo_entrada": "audio",
+      "contenido_transcrito": "Hola asistente, hoy fui al parque y me sentí muy feliz",
+      "clasificacion_emocional": "positivo",
+      "nivel_riesgo": 1,
+      "alerta_generada": false
+    }
+  ]
+}
