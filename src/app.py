@@ -9,6 +9,9 @@ st.set_page_config(
 
 st.markdown("""
     <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
     .main-title { color: #2563EB; font-weight: bold; }
     .chat-text { font-size: 1.15rem !important; line-height: 1.6 !important; }
     </style>
