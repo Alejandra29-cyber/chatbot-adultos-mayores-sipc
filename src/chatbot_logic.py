@@ -14,7 +14,7 @@ def limpiar_texto_natural(texto):
     texto_limpio = re.sub(r'[\*\#_`]', '', texto)
     return texto_limpio.strip()
 
-def obtener_respuesta_groq(mensajes, audio_bytes=None):
+def generar_respuesta_chatbot(mensajes, audio_bytes=None):
     cliente = conectar_gemini()
     
     sistema_reglas = (

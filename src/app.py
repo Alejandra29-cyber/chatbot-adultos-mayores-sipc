@@ -1,5 +1,5 @@
 import streamlit as st
-from chatbot_logic import obtener_respuesta_groq, limpiar_texto_natural
+from chatbot_logic import generar_respuesta_chatbot, limpiar_texto_natural
 
 st.set_page_config(
     page_title="Asistente Personal de Apoyo",
@@ -73,7 +73,7 @@ if audio_grabado:
             st.markdown('<p class="chat-text">🎙️ [Mensaje de voz enviado]</p>', unsafe_allow_html=True)
 
         with st.spinner("Escuchando y procesando audio..."):
-            respuesta_bot = obtener_respuesta_groq(st.session_state.historial_chat, audio_bytes=audio_bytes)
+            respuesta_bot = generar_respuesta_chatbot(st.session_state.historial_chat, audio_bytes=audio_bytes)
         
         st.session_state.historial_chat.append({"role": "assistant", "content": respuesta_bot})
         st.rerun()
@@ -85,7 +85,7 @@ if entrada_usuario := st.chat_input("O escribe tu mensaje aquí..."):
         st.markdown(f'<p class="chat-text">{entrada_usuario}</p>', unsafe_allow_html=True)
 
     with st.spinner("Procesando respuesta..."):
-        respuesta_bot = obtener_respuesta_groq(st.session_state.historial_chat)
+        respuesta_bot = generar_respuesta_chatbot(st.session_state.historial_chat)
     
     st.session_state.historial_chat.append({"role": "assistant", "content": respuesta_bot})
     st.rerun()
