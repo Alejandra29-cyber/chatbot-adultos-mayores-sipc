@@ -1,5 +1,5 @@
 import streamlit as st
-from chatbot_logic import generar_respuesta_chatbot, limpiar_texto_natural
+from chatbot_logic import generar_respuesta_chatbot, limpiar_texto_natural, clasificar_mensaje_usuario, guardar_registro_interaccion
 
 st.set_page_config(
     page_title="Asistente Personal de Apoyo",
@@ -78,6 +78,26 @@ if audio_grabado:
         with st.spinner("Escuchando y procesando audio..."):
             respuesta_bot = generar_respuesta_chatbot(st.session_state.historial_chat, audio_bytes=audio_bytes)
         
+        
+        texto_para_clasificar = "Mensaje de voz de usuario"
+        categoria_detectada = clasificar_mensaje_usuario(texto_para_clasificar)
+        
+        nivel_riesgo = 1
+        alerta = False
+        if categoria_detectada == "MALESTAR_LEVE":
+            nivel_riesgo = 2
+        elif categoria_detectada == "URGENCIA_CRISIS":
+            nivel_riesgo = 5
+            alerta = True
+
+        guardar_registro_interaccion(
+            tipo_entrada="audio",
+            contenido="[Mensaje de voz enviado]",
+            clasificacion=categoria_detectada,
+            nivel_riesgo=nivel_riesgo,
+            alerta=alerta
+        )
+
         st.session_state.historial_chat.append({"role": "assistant", "content": respuesta_bot})
         st.rerun()
 
@@ -90,5 +110,24 @@ if entrada_usuario := st.chat_input("O escribe tu mensaje aquí..."):
     with st.spinner("Procesando respuesta..."):
         respuesta_bot = generar_respuesta_chatbot(st.session_state.historial_chat)
     
+    
+    categoria_detectada = clasificar_mensaje_usuario(entrada_usuario)
+    
+    nivel_riesgo = 1
+    alerta = False
+    if categoria_detectada == "MALESTAR_LEVE":
+        nivel_riesgo = 2
+    elif categoria_detectada == "URGENCIA_CRISIS":
+        nivel_riesgo = 5
+        alerta = True
+
+    guardar_registro_interaccion(
+        tipo_entrada="texto",
+        contenido=entrada_usuario,
+        clasificacion=categoria_detectada,
+        nivel_riesgo=nivel_riesgo,
+        alerta=alerta
+    )
+
     st.session_state.historial_chat.append({"role": "assistant", "content": respuesta_bot})
     st.rerun()

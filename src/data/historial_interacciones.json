@@ -1,0 +1,65 @@
+[
+    {
+        "id_interaccion": "int_20261102_203454",
+        "timestamp": "2026-11-02T20:34:54.377419",
+        "tipo_entrada": "texto",
+        "contenido_transcrito": "Hola asistente quiero contarte que hoy ando muy feliz",
+        "clasificacion_modelo_baseline": "CHARLA_CASUAL",
+        "nivel_riesgo": 1,
+        "alerta_generada": false
+    },
+    {
+        "id_interaccion": "int_20261102_203549",
+        "timestamp": "2026-11-02T20:35:49.854337",
+        "tipo_entrada": "texto",
+        "contenido_transcrito": "te quiero contar algo ",
+        "clasificacion_modelo_baseline": "CHARLA_CASUAL",
+        "nivel_riesgo": 1,
+        "alerta_generada": false
+    },
+    {
+        "id_interaccion": "int_20261102_210721",
+        "timestamp": "2026-11-02T21:07:21.779386",
+        "tipo_entrada": "texto",
+        "contenido_transcrito": "quiero contarte que estoy muy feliz hoy ",
+        "clasificacion_modelo_baseline": "CHARLA_CASUAL",
+        "nivel_riesgo": 1,
+        "alerta_generada": false
+    },
+    {
+        "id_interaccion": "int_20261102_211231",
+        "timestamp": "2026-11-02T21:12:31.579530",
+        "tipo_entrada": "texto",
+        "contenido_transcrito": "quiero contarte que hoy estoy muy feliz",
+        "clasificacion_modelo_baseline": "CHARLA_CASUAL",
+        "nivel_riesgo": 1,
+        "alerta_generada": false
+    },
+    {
+        "id_interaccion": "int_20261102_211510",
+        "timestamp": "2026-11-02T21:15:10.184902",
+        "tipo_entrada": "texto",
+        "contenido_transcrito": "quiero contarte que hoy estoy muy feliz",
+        "clasificacion_modelo_baseline": "CHARLA_CASUAL",
+        "nivel_riesgo": 1,
+        "alerta_generada": false
+    },
+    {
+        "id_interaccion": "int_20261102_212132",
+        "timestamp": "2026-11-02T21:21:32.175576",
+        "tipo_entrada": "texto",
+        "contenido_transcrito": "te quiero contar que estoy muy feliz ",
+        "clasificacion_modelo_baseline": "CHARLA_CASUAL",
+        "nivel_riesgo": 1,
+        "alerta_generada": false
+    },
+    {
+        "id_interaccion": "int_20261102_212402",
+        "timestamp": "2026-11-02T21:24:02.896762",
+        "tipo_entrada": "texto",
+        "contenido_transcrito": "quieor contarte que hoy estoy muy feliz",
+        "clasificacion_modelo_baseline": "CHARLA_CASUAL",
+        "nivel_riesgo": 1,
+        "alerta_generada": false
+    }
+]
