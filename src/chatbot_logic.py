@@ -32,6 +32,13 @@ SISTEMA_REGLAS = (
     "REGLA ESTRICTA DE FORMATO: Nunca utilices asteriscos, negritas, cursivas ni símbolos markdown. Solo texto plano."
 )
 
+MODELO_PRINCIPAL = 'gemini-3.8-flash'
+MODELO_RESPALDO = 'gemini-3.5-flash'   # solo si Google rechaza el principal por saturación; poner None para desactivarlo
+MIN_TIMEOUT_MS = 10000                 # Google rechaza (400) cualquier límite por llamada menor a 10 s
+TIMEOUT_PRINCIPAL_MS = 10000           # límite para gemini-3.8-flash: si se queda esperando, pasa al respaldo
+TIMEOUT_RESPALDO_MS = 15000            # el respaldo (o el principal, si no hay respaldo) tiene más tiempo
+PAUSA_MODELO_PRINCIPAL_SEG = 60        # tras un rechazo, durante este tiempo se usa directo el respaldo (sin esperar el fallo)
+
 VENTANA_HISTORIAL = 12          # últimos mensajes enviados a Gemini (menos tokens = respuesta más rápida)
 
 # Escala de riesgo (1-5). Umbrales sobre la probabilidad de URGENCIA_CRISIS que entrega la Regresión Logística.
@@ -40,7 +47,7 @@ UMBRAL_DUDA = 0.30              # MALESTAR_LEVE con esta probabilidad de crisis 
 UMBRAL_CONFIANZA_CRISIS = 0.45  # URGENCIA_CRISIS con menos confianza que esto queda en nivel 4 (alerta igualmente)
 UMBRAL_ALERTA = 4               # nivel >= 4 dispara alerta inmediata a enfermería
 PAUSA_GEMINI_SEG = 20           # tras un fallo de Gemini, los mensajes siguientes usan respuesta predefinida durante este tiempo
-TIMEOUT_CRISIS_MS = 5000        # en crisis Gemini tiene máximo 5 s para contener; si no, se usa la respuesta predefinida
+TIMEOUT_CRISIS_MS = 10000       # en crisis Gemini tiene un solo intento de máximo 10 s; si no responde, se usa la respuesta predefinida
 VENTANA_ALERTA_SEG = 600        # no se repite la alerta a enfermería de una misma conversación durante 10 minutos
 UMBRAL_SIMILITUD = 0.60         # similitud mínima para reutilizar una respuesta modelo; si no, se usa una respuesta genérica segura
 
@@ -102,6 +109,38 @@ def limpiar_texto_natural(texto):
     texto_limpio = re.sub(r'[\*\#_`]', '', texto)
     return texto_limpio.strip()
 
+_principal_pausado_hasta = 0.0
+
+def _es_saturacion(error):
+    texto = str(error)
+    return any(c in texto for c in ("503", "504", "429", "UNAVAILABLE", "DEADLINE", "RESOURCE_EXHAUSTED"))
+
+def _generar_contenido(cliente, contents, json_salida=False, timeout_ms=None, un_solo_intento=False):
+    """Llama a gemini-3.8-flash. Si Google lo rechaza o no responde, usa el modelo de respaldo y lo avisa en la terminal.
+    timeout_ms fija el mismo límite para ambos modelos; un_solo_intento evita probar el segundo modelo (casos urgentes)."""
+    global _principal_pausado_hasta
+
+    def _config(ms):
+        datos = {"http_options": types.HttpOptions(timeout=max(ms, MIN_TIMEOUT_MS))}
+        if json_salida:
+            datos["response_mime_type"] = "application/json"
+        return types.GenerateContentConfig(**datos)
+
+    t_principal = timeout_ms or (TIMEOUT_PRINCIPAL_MS if MODELO_RESPALDO else TIMEOUT_RESPALDO_MS)
+    t_respaldo = timeout_ms or TIMEOUT_RESPALDO_MS
+    if not (MODELO_RESPALDO and time.time() < _principal_pausado_hasta):
+        try:
+            return cliente.models.generate_content(model='gemini-3.8-flash', contents=contents, config=_config(t_principal))
+        except Exception as error:
+            if not MODELO_RESPALDO or not _es_saturacion(error) or un_solo_intento:
+                if MODELO_RESPALDO and _es_saturacion(error):
+                    _principal_pausado_hasta = time.time() + PAUSA_MODELO_PRINCIPAL_SEG
+                raise
+            _principal_pausado_hasta = time.time() + PAUSA_MODELO_PRINCIPAL_SEG
+            print(f"[{datetime.now():%H:%M:%S}] AVISO {MODELO_PRINCIPAL} no disponible ({str(error)[:90]}) "
+                  f"-> se usa {MODELO_RESPALDO} por {PAUSA_MODELO_PRINCIPAL_SEG} s", file=sys.stderr, flush=True)
+    return cliente.models.generate_content(model=MODELO_RESPALDO, contents=contents, config=_config(t_respaldo))
+
 def generar_respuesta_chatbot(mensajes, audio_bytes=None, timeout_ms=None):
     cliente = conectar_gemini()
 
@@ -113,8 +152,7 @@ def generar_respuesta_chatbot(mensajes, audio_bytes=None, timeout_ms=None):
             return transcribir_y_responder_audio(audio_bytes)["respuesta"]
 
         # timeout_ms (opcional): límite corto por llamada y sin reintentos, para casos urgentes
-        config = types.GenerateContentConfig(http_options=types.HttpOptions(timeout=timeout_ms)) if timeout_ms else None
-        intentos = 1 if timeout_ms else 3
+        intentos = 1 if (timeout_ms or MODELO_RESPALDO) else 3   # con respaldo ya hay un segundo intento
         for intento in range(intentos):
             try:
                 historial_prompt = sistema_reglas + "\n\n"
@@ -125,11 +163,7 @@ def generar_respuesta_chatbot(mensajes, audio_bytes=None, timeout_ms=None):
 
                 historial_prompt += "Asistente: "
 
-                respuesta = cliente.models.generate_content(
-                    model='gemini-3.8-flash',
-                    contents=historial_prompt,
-                    config=config,
-                )
+                respuesta = _generar_contenido(cliente, historial_prompt, timeout_ms=timeout_ms, un_solo_intento=bool(timeout_ms))
                 return limpiar_texto_natural(respuesta.text)
 
             except Exception as error:
@@ -180,16 +214,11 @@ def transcribir_y_responder_audio(audio_bytes, mime_type="audio/wav"):
         '"transcripcion" (lo que dijo el usuario, palabra por palabra, en español, sin comentarios; cadena vacía si no se entiende) y '
         '"respuesta" (tu respuesta muy cálida, empática y breve, en texto plano sin símbolos markdown).',
     ]
-    config = types.GenerateContentConfig(response_mime_type="application/json")
 
-    intentos = 3
+    intentos = 1 if MODELO_RESPALDO else 3
     for intento in range(intentos):
         try:
-            resp = cliente.models.generate_content(
-                model='gemini-3.8-flash',
-                contents=contenido,
-                config=config,
-            )
+            resp = _generar_contenido(cliente, contenido, json_salida=True)
             transcripcion, respuesta = _extraer_json_audio(resp.text)
             return {"transcripcion": transcripcion, "respuesta": respuesta, "ok": bool(respuesta)}
         except Exception as error:
@@ -206,7 +235,7 @@ def transcribir_y_responder_audio(audio_bytes, mime_type="audio/wav"):
 @st.cache_resource
 def _cargar_dataset():
     df = pd.read_csv(_dir_data() / 'mensajes_sinteticos.csv', encoding='utf-8-sig')
-    if 'respuesta' not in df.columns:      # compatibilidad con el CSV anterior de 2 columnas
+    if 'respuesta' not in df.columns:      
         df['respuesta'] = ""
     df['respuesta'] = df['respuesta'].fillna("")
     return df
@@ -472,7 +501,7 @@ def procesar_interaccion(tipo_entrada, mensajes, texto=None, audio_bytes=None):
     else:
         contenido = (texto or "").strip()
 
-    #  clasificación (Regresión Logística) y nivel de riesgo
+    # CLASIFICACIÓN (Regresión Logística) y nivel de riesgo
     categoria, p_crisis = clasificar_con_confianza(contenido)
     nivel = evaluar_riesgo(categoria, p_crisis)
 
