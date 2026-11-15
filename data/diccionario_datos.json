@@ -1,6 +1,6 @@
 {
   "proyecto": "ORACLE-Voz",
-  "version": "1.0",
+  "version": "1.1",
   "descripcion": "Diccionario de datos y registros de interacciones del asistente gerontológico",
   "campos": [
     {
@@ -10,18 +10,64 @@
       "contenido_transcrito": "str",
       "clasificacion_emocional": "str",
       "nivel_riesgo": "int (1-5)",
-      "alerta_generada": "bool"
+      "alerta_generada": "bool",
+      "decision": "str",
+      "accion": "str",
+      "respuesta_chatbot": "str",
+      "retroalimentacion": "str"
     }
   ],
+  "descripcion_campos": {
+    "id_interaccion": "Identificador único automático (int_AAAAMMDD_HHMMSS_<6 hex>).",
+    "timestamp": "Fecha y hora exacta de la interacción en formato ISO 8601 con zona horaria.",
+    "tipo_entrada": "Canal de entrada: 'texto' o 'audio'.",
+    "contenido_transcrito": "Texto escrito por el usuario o transcripción real de su nota de voz. '[Inicio de conversación]' en el turno de apertura; '[Audio no transcrito]' si no se pudo transcribir.",
+    "clasificacion_emocional": "Categoría predicha por la Regresión Logística: CHARLA_CASUAL, MALESTAR_LEVE o URGENCIA_CRISIS. SIN_CLASIFICAR solo si no hubo texto que clasificar.",
+    "nivel_riesgo": "Escala 1-5 derivada de la categoría y de la probabilidad de crisis del modelo.",
+    "alerta_generada": "true si se disparó alerta inmediata al área de enfermería (nivel_riesgo >= 4).",
+    "decision": "Fase DECISIÓN: protocolo determinado tras evaluar el nivel de riesgo.",
+    "accion": "Fase ACCIÓN: ejecución concreta realizada (acompañamiento verbal o canalización de alerta a enfermería).",
+    "respuesta_chatbot": "Respuesta exacta entregada por el asistente al usuario.",
+    "retroalimentacion": "Fase RETROALIMENTACIÓN: seguimiento o estado de cierre de la interacción."
+  },
+  "escala_nivel_riesgo": {
+    "1": "CHARLA_CASUAL. Protocolo A: acompañamiento conversacional. Ciclo cerrado.",
+    "2": "MALESTAR_LEVE. Protocolo B: acompañamiento empático y registro para seguimiento.",
+    "3": "MALESTAR_LEVE con probabilidad de crisis >= 0.30, o audio sin transcripción. Protocolo B2: contención y revisión de enfermería en la próxima ronda, sin alerta inmediata.",
+    "4": "URGENCIA_CRISIS con confianza < 0.45. Protocolo C: alerta prioritaria (ALTA) a enfermería.",
+    "5": "URGENCIA_CRISIS con confianza >= 0.45. Protocolo C: alerta prioritaria (CRITICA) a enfermería."
+  },
+  "archivos_de_datos": {
+    "mensajes_sinteticos.csv": "Dataset de entrenamiento: mensaje,categoria,respuesta. Solo mensaje y categoria entrenan el modelo; respuesta es la respuesta empática modelo.",
+    "historial_interacciones.json": "Arreglo JSON acumulativo; un objeto por turno con los 11 campos de 'campos'.",
+    "alertas_enfermeria.log": "Log clínico de alertas: una línea JSON por alerta (id_alerta, timestamp, area_destino, prioridad, estado, id_interaccion, nivel_riesgo, clasificacion_emocional, tipo_entrada, contenido_transcrito)."
+  },
   "registros_prueba": [
     {
       "id_interaccion": "orv-001",
       "timestamp": "2026-10-21T10:30:00Z",
       "tipo_entrada": "audio",
       "contenido_transcrito": "Hola asistente, hoy fui al parque y me sentí muy feliz",
-      "clasificacion_emocional": "positivo",
+      "clasificacion_emocional": "CHARLA_CASUAL",
       "nivel_riesgo": 1,
-      "alerta_generada": false
+      "alerta_generada": false,
+      "decision": "Protocolo A (sin riesgo): acompañamiento conversacional normal",
+      "accion": "Acompañamiento verbal conversacional",
+      "respuesta_chatbot": "Qué alegría me da escucharte tan contento. Cuéntame más de tu paseo por el parque.",
+      "retroalimentacion": "Sin riesgo detectado; ciclo cerrado"
+    },
+    {
+      "id_interaccion": "orv-002",
+      "timestamp": "2026-10-21T10:45:00Z",
+      "tipo_entrada": "audio",
+      "contenido_transcrito": "Me caí en el baño y me duele mucho la pierna",
+      "clasificacion_emocional": "URGENCIA_CRISIS",
+      "nivel_riesgo": 5,
+      "alerta_generada": true,
+      "decision": "Protocolo C (riesgo alto o crisis): activar alerta prioritaria inmediata al área de enfermería y contener emocionalmente al usuario",
+      "accion": "Alerta prioritaria ALR-20261021-104500-A1B2 (CRITICA) registrada en el log clínico de enfermería y contención emocional verbal por el asistente",
+      "respuesta_chatbot": "Estoy aquí contigo. Ya avisé de inmediato al equipo de enfermería de la residencia y una enfermera va en camino. Lamento mucho lo que pasó. Quédate donde estás y respira despacio; yo me quedo contigo hasta que lleguen.",
+      "retroalimentacion": "Alerta ALR-20261021-104500-A1B2 en estado PENDIENTE_DE_ATENCION; ciclo abierto hasta que enfermería confirme la atención"
     }
   ]
 }

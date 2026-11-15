@@ -1,0 +1,54 @@
+[
+    {
+        "id_interaccion": "int_20261114_211145_946b85",
+        "timestamp": "2026-11-14T21:11:45.828-06:00",
+        "tipo_entrada": "texto",
+        "contenido_transcrito": "[Inicio de conversación]",
+        "clasificacion_emocional": "CHARLA_CASUAL",
+        "nivel_riesgo": 1,
+        "alerta_generada": false,
+        "decision": "Protocolo A (sin riesgo): abrir la conversación con un saludo de bienvenida",
+        "accion": "Saludo inicial del asistente",
+        "respuesta_chatbot": "Hola. ¿En qué puedo ayudarte hoy?",
+        "retroalimentacion": "Conversación iniciada; en espera del primer mensaje del usuario"
+    },
+    {
+        "id_interaccion": "int_20261114_211154_bef9b6",
+        "timestamp": "2026-11-14T21:12:05.933-06:00",
+        "tipo_entrada": "texto",
+        "contenido_transcrito": "quiero contarte que hoy estoy feliz",
+        "clasificacion_emocional": "CHARLA_CASUAL",
+        "nivel_riesgo": 1,
+        "alerta_generada": false,
+        "decision": "Protocolo A (sin riesgo): acompañamiento conversacional normal",
+        "accion": "Acompañamiento verbal conversacional",
+        "respuesta_chatbot": "Me alegra muchísimo escucharlo, qué bonito que te sientas feliz. Cuéntame, ¿qué te puso de tan buen ánimo hoy?",
+        "retroalimentacion": "Sin riesgo detectado; ciclo cerrado"
+    },
+    {
+        "id_interaccion": "int_20261114_211227_85608d",
+        "timestamp": "2026-11-14T21:12:41.196-06:00",
+        "tipo_entrada": "texto",
+        "contenido_transcrito": "fui al medico",
+        "clasificacion_emocional": "MALESTAR_LEVE",
+        "nivel_riesgo": 2,
+        "alerta_generada": false,
+        "decision": "Protocolo B (malestar leve): acompañamiento empático y registro para seguimiento",
+        "accion": "Acompañamiento verbal empático; registro para seguimiento",
+        "respuesta_chatbot": "Gracias por contármelo, estoy aquí contigo. Cuéntame un poco más de cómo te sientes; si algo empeora, avisa al personal de enfermería.",
+        "retroalimentacion": "Seguimiento rutinario; ciclo cerrado salvo que el malestar se repita"
+    },
+    {
+        "id_interaccion": "int_20261114_211301_9f9473",
+        "timestamp": "2026-11-14T21:13:07.540-06:00",
+        "tipo_entrada": "texto",
+        "contenido_transcrito": "me cai y me duele el brazo",
+        "clasificacion_emocional": "URGENCIA_CRISIS",
+        "nivel_riesgo": 5,
+        "alerta_generada": true,
+        "decision": "Protocolo C (riesgo alto o crisis): activar alerta prioritaria inmediata al área de enfermería y contener emocionalmente al usuario",
+        "accion": "Alerta prioritaria ALR-20261114-211301-9552 (CRITICA) registrada en el log clínico de enfermería y contención emocional verbal por el asistente",
+        "respuesta_chatbot": "Estoy aquí contigo. Ya avisé de inmediato al equipo de enfermería de la residencia y una enfermera va en camino. Quédate donde estás y respira despacio; yo me quedo contigo hasta que lleguen.",
+        "retroalimentacion": "Alerta ALR-20261114-211301-9552 en estado PENDIENTE_DE_ATENCION; ciclo abierto hasta que enfermería confirme la atención"
+    }
+]

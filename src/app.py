@@ -1,5 +1,5 @@
 import streamlit as st
-from chatbot_logic import generar_respuesta_chatbot, limpiar_texto_natural, clasificar_mensaje_usuario, guardar_registro_interaccion
+from chatbot_logic import limpiar_texto_natural, procesar_interaccion, registrar_inicio_conversacion, precalentar_recursos
 
 st.set_page_config(
     page_title="Asistente Personal de Apoyo",
@@ -17,6 +17,9 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Carga (una sola vez, en caché) el cliente de Gemini, el dataset y el modelo, para que el primer mensaje no espere
+precalentar_recursos()
+
 st.markdown("<h1 class='main-title'>💙 Mi Asistente de Compañía</h1>", unsafe_allow_html=True)
 st.write("Un espacio tranquilo para conversar mediante voz o texto.")
 
@@ -33,6 +36,11 @@ if "historial_chat" not in st.session_state:
     st.session_state.historial_chat = [
         {"role": "assistant", "content": "Hola. ¿En qué puedo ayudarte hoy?"}
     ]
+
+# Inicio de conversación: se registra una sola vez por sesión en historial_interacciones.json
+if "conversacion_registrada" not in st.session_state:
+    registrar_inicio_conversacion(st.session_state.historial_chat[0]["content"])
+    st.session_state.conversacion_registrada = True
 
 
 if "ultimo_audio_procesado" not in st.session_state:
@@ -75,28 +83,10 @@ if audio_grabado:
         with st.chat_message("user"):
             st.markdown('<p class="chat-text">🎙️ [Mensaje de voz enviado]</p>', unsafe_allow_html=True)
 
+        # Una sola llamada a Gemini transcribe y responde; la transcripción real pasa por la Regresión Logística,
+        # se evalúa el riesgo, se decide el protocolo, se alerta a enfermería si hace falta y se guarda el turno.
         with st.spinner("Escuchando y procesando audio..."):
-            respuesta_bot = generar_respuesta_chatbot(st.session_state.historial_chat, audio_bytes=audio_bytes)
-        
-        
-        texto_para_clasificar = "Mensaje de voz de usuario"
-        categoria_detectada = clasificar_mensaje_usuario(texto_para_clasificar)
-        
-        nivel_riesgo = 1
-        alerta = False
-        if categoria_detectada == "MALESTAR_LEVE":
-            nivel_riesgo = 2
-        elif categoria_detectada == "URGENCIA_CRISIS":
-            nivel_riesgo = 5
-            alerta = True
-
-        guardar_registro_interaccion(
-            tipo_entrada="audio",
-            contenido="[Mensaje de voz enviado]",
-            clasificacion=categoria_detectada,
-            nivel_riesgo=nivel_riesgo,
-            alerta=alerta
-        )
+            respuesta_bot = procesar_interaccion("audio", st.session_state.historial_chat, audio_bytes=audio_bytes)
 
         st.session_state.historial_chat.append({"role": "assistant", "content": respuesta_bot})
         st.rerun()
@@ -108,26 +98,7 @@ if entrada_usuario := st.chat_input("O escribe tu mensaje aquí..."):
         st.markdown(f'<p class="chat-text">{entrada_usuario}</p>', unsafe_allow_html=True)
 
     with st.spinner("Procesando respuesta..."):
-        respuesta_bot = generar_respuesta_chatbot(st.session_state.historial_chat)
-    
-    
-    categoria_detectada = clasificar_mensaje_usuario(entrada_usuario)
-    
-    nivel_riesgo = 1
-    alerta = False
-    if categoria_detectada == "MALESTAR_LEVE":
-        nivel_riesgo = 2
-    elif categoria_detectada == "URGENCIA_CRISIS":
-        nivel_riesgo = 5
-        alerta = True
-
-    guardar_registro_interaccion(
-        tipo_entrada="texto",
-        contenido=entrada_usuario,
-        clasificacion=categoria_detectada,
-        nivel_riesgo=nivel_riesgo,
-        alerta=alerta
-    )
+        respuesta_bot = procesar_interaccion("texto", st.session_state.historial_chat, texto=entrada_usuario)
 
     st.session_state.historial_chat.append({"role": "assistant", "content": respuesta_bot})
     st.rerun()
